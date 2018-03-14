@@ -1,16 +1,19 @@
-import logging
-from queue import Queue
-from threading import Thread
-from telegram.ext import Dispatcher, CommandHandler, MessageHandler, Updater, Filters
+#!/usr/bin/python2.7
+# -*- coding: utf-8 -*-
+
 import os
 import re
-from telegram import ParseMode, Bot
+#import sys
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import ParseMode
+import logging
 import errno
 
+# Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
+
 logger = logging.getLogger(__name__)
-TOKEN = '565882468:AAHsEtAdAM-OukDz87zrhNDYS6p1uA_nDWo'
 not_changing_message = '''
 به نظر می‌رسد که %s یک فایل زیرنویس نیست.
 برای جلوگیری از نابودی فایل‌های غیر زیرنویس این فایل تغییر نخواهد کرد.
@@ -178,40 +181,33 @@ def fix(bot, update):
 def error(bot, update, error):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
+    
+def main():
+    """Start the bot."""
+    # Create the EventHandler and pass it your bot's token.
+    updater = Updater("565882468:AAHsEtAdAM-OukDz87zrhNDYS6p1uA_nDWo")
 
-# Write your handlers here
+    # Get the dispatcher to register handlers
+    dp = updater.dispatcher
 
+    # on different commands - answer in Telegram
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("help", help))
+    #dp.add_handler(CommandHandler("lyrics", lyricsCmd, pass_args=True))
+    
+    dp.add_handler(MessageHandler(Filters.document, fix))
+    
 
-def setup(webhook_url=None):
-    """If webhook_url is not passed, run with long-polling."""
-    logging.basicConfig(level=logging.WARNING)
-    if webhook_url:
-        bot = Bot(TOKEN)
-        update_queue = Queue()
-        dp = Dispatcher(bot, update_queue)
-    else:
-        updater = Updater(TOKEN)
-        bot = updater.bot
-        dp = updater.dispatcher
-        dp.add_handler(CommandHandler("start", start))
-        dp.add_handler(CommandHandler("help", help))
+    # log all errors
+    dp.add_error_handler(error)
 
-        # on noncommand i.e message - echo the message on Telegram
-        dp.add_handler(MessageHandler(Filters.document, fix))
+    # Start the Bot
+    updater.start_polling()
 
-        # log all errors
-        dp.add_error_handler(error)
-    # Add your handlers here
-    if webhook_url:
-        bot.set_webhook(webhook_url=webhook_url)
-        thread = Thread(target=dp.start, name='dispatcher')
-        thread.start()
-        return update_queue, bot
-    else:
-        bot.set_webhook()  # Delete webhook
-        updater.start_polling()
-        updater.idle()
-
-
+    # Run the bot until you press Ctrl-C or the process receives SIGINT,
+    # SIGTERM or SIGABRT. This should be used most of the time, since
+    # start_polling() is non-blocking and will stop the bot gracefully.
+    updater.idle()
 if __name__ == '__main__':
-    setup()
+    fileName=''
+    main()
